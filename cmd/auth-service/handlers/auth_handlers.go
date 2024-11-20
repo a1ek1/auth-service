@@ -98,6 +98,7 @@ func LoginHandler(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(models.AuthResponse{Token: tokenString})
 }
 
+// Страница успешного входа
 func SuccessHandler(w http.ResponseWriter, r *http.Request) {
 	token := r.URL.Query().Get("token")
 	if token == "" {
@@ -105,8 +106,27 @@ func SuccessHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Парсим JWT токен
+	claims := jwt.MapClaims{}
+	parsedToken, err := jwt.ParseWithClaims(token, claims, func(token *jwt.Token) (interface{}, error) {
+		return jwtSecret, nil
+	})
+
+	if err != nil || !parsedToken.Valid {
+		http.Error(w, "Invalid token", http.StatusUnauthorized)
+		return
+	}
+
+	// Извлекаем login из токена
+	login, ok := claims["login"].(string)
+	if !ok {
+		http.Error(w, "Invalid token structure", http.StatusUnauthorized)
+		return
+	}
+
+	// Проверяем наличие токена в Redis
 	ctx := context.Background()
-	storedToken, err := rdb.Get(ctx, fmt.Sprintf("token:%s", token)).Result()
+	storedToken, err := rdb.Get(ctx, fmt.Sprintf("token:%s", login)).Result()
 	if err == redis.Nil {
 		http.Error(w, "Invalid token", http.StatusUnauthorized)
 		return
@@ -116,6 +136,7 @@ func SuccessHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Если токен совпадает
 	if storedToken == token {
 		w.WriteHeader(http.StatusOK)
 		json.NewEncoder(w).Encode(models.Response{Message: "Successfully logged in"})

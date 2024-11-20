@@ -5,6 +5,7 @@ import (
 	"auth-service/internal/utils"
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
 	"time"
 
@@ -18,8 +19,8 @@ var jwtSecret = []byte("secret_key_for_jwt")
 
 func init() {
 	rdb = redis.NewClient(&redis.Options{
-		Addr: "localhost:6379", // Адрес Redis
-		DB:   0,                // Используем 0-ю базу данных
+		Addr: "redis:6379", // Адрес Redis
+		DB:   0,            // Используем 0-ю базу данных
 	})
 }
 
@@ -27,25 +28,36 @@ func RegisterHandler(w http.ResponseWriter, r *http.Request) {
 	var user models.User
 	err := json.NewDecoder(r.Body).Decode(&user)
 	if err != nil {
+		log.Println("Error decoding JSON:", err)
 		http.Error(w, "Invalid input", http.StatusBadRequest)
 		return
 	}
 
+	// Проверяем, существует ли пользователь в Redis
 	ctx := context.Background()
 	_, err = rdb.Get(ctx, user.Login).Result()
 	if err == nil {
+		log.Println("User already exists:", user.Login)
 		http.Error(w, "User already exists", http.StatusConflict)
 		return
-	}
-
-	hashedPassword, err := utils.HashPassword(user.Password)
-	if err != nil {
+	} else if err != redis.Nil {
+		log.Println("Error checking user in Redis:", err)
 		http.Error(w, "Internal server error", http.StatusInternalServerError)
 		return
 	}
 
+	// Хешируем пароль
+	hashedPassword, err := utils.HashPassword(user.Password)
+	if err != nil {
+		log.Println("Error hashing password:", err)
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
+
+	// Сохраняем в Redis
 	err = rdb.Set(ctx, user.Login, hashedPassword, 0).Err()
 	if err != nil {
+		log.Println("Error saving to Redis:", err)
 		http.Error(w, "Internal server error", http.StatusInternalServerError)
 		return
 	}
@@ -113,6 +125,7 @@ func SuccessHandler(w http.ResponseWriter, r *http.Request) {
 	})
 
 	if err != nil || !parsedToken.Valid {
+		log.Printf("Invalid token: %v", err) // Логирование ошибки токена
 		http.Error(w, "Invalid token", http.StatusUnauthorized)
 		return
 	}
@@ -120,6 +133,7 @@ func SuccessHandler(w http.ResponseWriter, r *http.Request) {
 	// Извлекаем login из токена
 	login, ok := claims["login"].(string)
 	if !ok {
+		log.Println("Invalid token structure: 'login' not found or not a string") // Логирование ошибки структуры токена
 		http.Error(w, "Invalid token structure", http.StatusUnauthorized)
 		return
 	}
@@ -127,20 +141,26 @@ func SuccessHandler(w http.ResponseWriter, r *http.Request) {
 	// Проверяем наличие токена в Redis
 	ctx := context.Background()
 	storedToken, err := rdb.Get(ctx, fmt.Sprintf("token:%s", login)).Result()
+
 	if err == redis.Nil {
+		log.Printf("Token not found in Redis for login: %s", login) // Логирование случая, когда токен не найден в Redis
 		http.Error(w, "Invalid token", http.StatusUnauthorized)
 		return
 	}
+
 	if err != nil {
+		log.Printf("Error retrieving token from Redis: %v", err) // Логирование ошибки при доступе к Redis
 		http.Error(w, "Internal server error", http.StatusInternalServerError)
 		return
 	}
 
 	// Если токен совпадает
 	if storedToken == token {
+		log.Printf("Token validated successfully for user: %s", login) // Логирование успешной валидации токена
 		w.WriteHeader(http.StatusOK)
 		json.NewEncoder(w).Encode(models.Response{Message: "Successfully logged in"})
 	} else {
+		log.Printf("Token mismatch for user: %s", login) // Логирование несоответствия токенов
 		http.Error(w, "Invalid token", http.StatusUnauthorized)
 	}
 }

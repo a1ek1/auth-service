@@ -1,7 +1,33 @@
-version: '3'
+version: '3.8'
+
 services:
-  redis:
-    image: redis:latest
-    container_name: redis-container
+  # Сервис авторизации
+  auth-service:
+    build:
+      context: ..                         # Указываем контекст сборки на родительскую директорию (папка auth-service)
+      dockerfile: deployments/Dockerfile   # Указываем путь к Dockerfile в директории deployments
     ports:
-      - "6379:6379"
+      - "8080:8080"                       # Проброс порта 8080 для общения с сервисом
+    environment:
+      - REDIS_URL=redis://redis:6379      # Адрес Redis, который будет использоваться в контейнере
+      - JWT_SECRET=secret_key_for_jwt     # Секрет для JWT (по желанию можно вынести в .env)
+    depends_on:
+      - redis                             # Зависимость от контейнера Redis
+    networks:
+      - auth-network
+    restart: always                       # Автоматический перезапуск контейнера в случае сбоев
+
+  # Сервис Redis
+  redis:
+    image: redis:alpine                  # Используем официальный образ Redis
+    container_name: redis
+    ports:
+      - "6379:6379"                      # Проброс порта Redis
+    networks:
+      - auth-network
+    restart: always                      # Автоматический перезапуск контейнера в случае сбоев
+
+# Сетевые настройки
+networks:
+  auth-network:
+    driver: bridge

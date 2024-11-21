@@ -15,5 +15,5 @@ curl -X POST http://localhost:8080/register -H "Content-Type: application/json" 
 ### Проверка доступа к данным
 Выполните следующий запрос:
 ```bash
-curl -X POST http://localhost:8080/success?token={{ваш_токен}}"}"
+curl -X POST http://localhost:8080/success?token="{{ваш_токен}}"
 ```

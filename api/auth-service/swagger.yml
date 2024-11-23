@@ -1,0 +1,183 @@
+openapi: 3.0.0
+info:
+  title: Auth Service API
+  description: API для регистрации, логина и валидации токенов
+  version: 1.0.0
+paths:
+  /register:
+    post:
+      summary: Регистрация нового пользователя
+      operationId: register
+      requestBody:
+        description: Данные для регистрации нового пользователя
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                login:
+                  type: string
+                  example: user1
+                password:
+                  type: string
+                  example: password123
+      responses:
+        '201':
+          description: Пользователь успешно зарегистрирован
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: User registered successfully
+        '400':
+          description: Некорректный запрос
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Invalid input
+        '409':
+          description: Пользователь уже существует
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: User already exists
+        '500':
+          description: Внутренняя ошибка сервера
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Internal server error
+
+  /login:
+    post:
+      summary: Авторизация пользователя и получение токена
+      operationId: login
+      requestBody:
+        description: Данные для авторизации пользователя
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                login:
+                  type: string
+                  example: user1
+                password:
+                  type: string
+                  example: password123
+      responses:
+        '200':
+          description: Успешный вход, возвращен токен
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  token:
+                    type: string
+                    example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3MzIzNjYxMTYsImxvZ2luIjoiIn0.kiiiFij7SZHMoKvnxmFOAjlzRYZjM1nmGoZ_bVrCKVc
+        '400':
+          description: Некорректный запрос
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Invalid input
+        '401':
+          description: Неверные учетные данные
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Invalid credentials
+        '500':
+          description: Внутренняя ошибка сервера
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Internal server error
+
+  /success:
+    get:
+      summary: Проверка токена и успешный вход
+      operationId: success
+      parameters:
+        - name: Authorization
+          in: header
+          description: JWT токен для валидации
+          required: true
+          schema:
+            type: string
+            example: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3MzIzNjYxMTYsImxvZ2luIjoiIn0.kiiiFij7SZHMoKvnxmFOAjlzRYZjM1nmGoZ_bVrCKVc
+      responses:
+        '200':
+          description: Токен валиден, вход успешен
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Successfully logged in
+        '401':
+          description: Неверный или отсутствующий токен
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Invalid token
+        '500':
+          description: Внутренняя ошибка сервера
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Internal server error
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    Response:
+      type: object
+      properties:
+        message:
+          type: string
+          example: Success message

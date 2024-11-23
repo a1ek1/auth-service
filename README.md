@@ -47,11 +47,11 @@ curl -X POST http://localhost:8080/register -H "Content-Type: application/json" 
 ### Авторизация пользователя
 Для авторизации пользователя выполните следующий запрос:
 ```bash
-curl -X POST http://localhost:8080/login -H "Content-Type: application/json" -d "{\"username\": \"user1\", \"password\": \"password123\"}"
+curl -X POST http://localhost:8080/login -H "Content-Type: application/json" -d "{\"username\": \"user1\", \"password\": \"password123\"}" -i
 ```
 
 ### Проверка доступа к данным
 Выполните следующий запрос:
 ```bash
-curl -X POST http://localhost:8080/success?token="{{ваш_токен}}"
+curl -X GET http://localhost:8080/success -H "Authorization: Bearer {token}
 ```

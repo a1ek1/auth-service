@@ -1,1 +1,16 @@
 .env
+
+*.git
+*.md
+*.log
+node_modules
+tmp
+*.bak
+*.swp
+.DS_Store
+.idea/
+.vscode/
+
+/cmd/auth-service/*.test
+/cmd/auth-service/*.out
+/internal/test/

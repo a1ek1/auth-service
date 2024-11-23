@@ -29,7 +29,7 @@ func RegisterHandler(w http.ResponseWriter, r *http.Request) {
 	err := json.NewDecoder(r.Body).Decode(&user)
 	if err != nil {
 		log.Println("Error decoding JSON:", err)
-		http.Error(w, "Invalid input", http.StatusBadRequest)
+		utils.SendJSONResponse(w, http.StatusBadRequest, models.Response{Message: "Invalid input"})
 		return
 	}
 
@@ -38,11 +38,11 @@ func RegisterHandler(w http.ResponseWriter, r *http.Request) {
 	_, err = rdb.Get(ctx, user.Login).Result()
 	if err == nil {
 		log.Println("User already exists:", user.Login)
-		http.Error(w, "User already exists", http.StatusConflict)
+		utils.SendJSONResponse(w, http.StatusConflict, models.Response{Message: "User already exists"})
 		return
 	} else if err != redis.Nil {
 		log.Println("Error checking user in Redis:", err)
-		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		utils.SendJSONResponse(w, http.StatusInternalServerError, models.Response{Message: "Internal server error"})
 		return
 	}
 
@@ -50,7 +50,7 @@ func RegisterHandler(w http.ResponseWriter, r *http.Request) {
 	hashedPassword, err := utils.HashPassword(user.Password)
 	if err != nil {
 		log.Println("Error hashing password:", err)
-		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		utils.SendJSONResponse(w, http.StatusInternalServerError, models.Response{Message: "Internal server error"})
 		return
 	}
 
@@ -58,35 +58,34 @@ func RegisterHandler(w http.ResponseWriter, r *http.Request) {
 	err = rdb.Set(ctx, user.Login, hashedPassword, 0).Err()
 	if err != nil {
 		log.Println("Error saving to Redis:", err)
-		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		utils.SendJSONResponse(w, http.StatusInternalServerError, models.Response{Message: "Internal server error"})
 		return
 	}
 
-	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(models.Response{Message: "User registered successfully"})
+	utils.SendJSONResponse(w, http.StatusCreated, models.Response{Message: "User registered successfully"})
 }
 
 func LoginHandler(w http.ResponseWriter, r *http.Request) {
 	var loginReq models.LoginRequest
 	err := json.NewDecoder(r.Body).Decode(&loginReq)
 	if err != nil {
-		http.Error(w, "Invalid input", http.StatusBadRequest)
+		utils.SendJSONResponse(w, http.StatusBadRequest, models.Response{Message: "Invalid input"})
 		return
 	}
 
 	ctx := context.Background()
 	storedPassword, err := rdb.Get(ctx, loginReq.Login).Result()
 	if err == redis.Nil {
-		http.Error(w, "User not found", http.StatusUnauthorized)
+		utils.SendJSONResponse(w, http.StatusUnauthorized, models.Response{Message: "User not found"})
 		return
 	}
 	if err != nil {
-		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		utils.SendJSONResponse(w, http.StatusInternalServerError, models.Response{Message: "Internal server error"})
 		return
 	}
 
 	if !utils.CheckPasswordHash(loginReq.Password, storedPassword) {
-		http.Error(w, "Invalid credentials", http.StatusUnauthorized)
+		utils.SendJSONResponse(w, http.StatusUnauthorized, models.Response{Message: "Invalid credentials"})
 		return
 	}
 
@@ -97,24 +96,24 @@ func LoginHandler(w http.ResponseWriter, r *http.Request) {
 
 	tokenString, err := token.SignedString(jwtSecret)
 	if err != nil {
-		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		utils.SendJSONResponse(w, http.StatusInternalServerError, models.Response{Message: "Internal server error"})
 		return
 	}
 
 	err = rdb.Set(ctx, fmt.Sprintf("token:%s", loginReq.Login), tokenString, time.Hour).Err()
 	if err != nil {
-		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		utils.SendJSONResponse(w, http.StatusInternalServerError, models.Response{Message: "Internal server error"})
 		return
 	}
 
-	json.NewEncoder(w).Encode(models.AuthResponse{Token: tokenString})
+	utils.SendJSONResponse(w, http.StatusOK, models.AuthResponse{Token: tokenString})
 }
 
 // Страница успешного входа
 func SuccessHandler(w http.ResponseWriter, r *http.Request) {
 	token := r.URL.Query().Get("token")
 	if token == "" {
-		http.Error(w, "Token not provided", http.StatusUnauthorized)
+		utils.SendJSONResponse(w, http.StatusUnauthorized, models.Response{Message: "Token not provided"})
 		return
 	}
 
@@ -126,7 +125,7 @@ func SuccessHandler(w http.ResponseWriter, r *http.Request) {
 
 	if err != nil || !parsedToken.Valid {
 		log.Printf("Invalid token: %v", err) // Логирование ошибки токена
-		http.Error(w, "Invalid token", http.StatusUnauthorized)
+		utils.SendJSONResponse(w, http.StatusUnauthorized, models.Response{Message: "Invalid token"})
 		return
 	}
 
@@ -134,7 +133,7 @@ func SuccessHandler(w http.ResponseWriter, r *http.Request) {
 	login, ok := claims["login"].(string)
 	if !ok {
 		log.Println("Invalid token structure: 'login' not found or not a string") // Логирование ошибки структуры токена
-		http.Error(w, "Invalid token structure", http.StatusUnauthorized)
+		utils.SendJSONResponse(w, http.StatusUnauthorized, models.Response{Message: "Invalid token structure"})
 		return
 	}
 
@@ -144,23 +143,22 @@ func SuccessHandler(w http.ResponseWriter, r *http.Request) {
 
 	if err == redis.Nil {
 		log.Printf("Token not found in Redis for login: %s", login) // Логирование случая, когда токен не найден в Redis
-		http.Error(w, "Invalid token", http.StatusUnauthorized)
+		utils.SendJSONResponse(w, http.StatusUnauthorized, models.Response{Message: "Invalid token"})
 		return
 	}
 
 	if err != nil {
 		log.Printf("Error retrieving token from Redis: %v", err) // Логирование ошибки при доступе к Redis
-		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		utils.SendJSONResponse(w, http.StatusInternalServerError, models.Response{Message: "Internal server error"})
 		return
 	}
 
 	// Если токен совпадает
 	if storedToken == token {
 		log.Printf("Token validated successfully for user: %s", login) // Логирование успешной валидации токена
-		w.WriteHeader(http.StatusOK)
-		json.NewEncoder(w).Encode(models.Response{Message: "Successfully logged in"})
+		utils.SendJSONResponse(w, http.StatusOK, models.Response{Message: "Successfully logged in"})
 	} else {
 		log.Printf("Token mismatch for user: %s", login) // Логирование несоответствия токенов
-		http.Error(w, "Invalid token", http.StatusUnauthorized)
+		utils.SendJSONResponse(w, http.StatusUnauthorized, models.Response{Message: "Invalid token"})
 	}
 }

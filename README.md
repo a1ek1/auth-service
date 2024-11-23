@@ -9,7 +9,7 @@ curl -X POST http://localhost:8080/register -H "Content-Type: application/json" 
 ### Авторизация пользователя
 Для авторизации пользователя выполните следующий запрос:
 ```bash
-curl -X POST http://localhost:8080/register -H "Content-Type: application/json" -d "{\"username\": \"user1\", \"password\": \"password123\"}"
+curl -X POST http://localhost:8080/login -H "Content-Type: application/json" -d "{\"username\": \"user1\", \"password\": \"password123\"}"
 ```
 
 ### Проверка доступа к данным

@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/dgrijalva/jwt-go"
@@ -106,16 +107,21 @@ func LoginHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	utils.SendJSONResponse(w, http.StatusOK, models.AuthResponse{Token: tokenString})
+	w.Header().Set("Authorization", "Bearer "+tokenString)
+	w.WriteHeader(http.StatusOK)
+	utils.SendJSONResponse(w, http.StatusOK, models.Response{Message: "Login successful"})
 }
 
 // Страница успешного входа
 func SuccessHandler(w http.ResponseWriter, r *http.Request) {
-	token := r.URL.Query().Get("token")
+	token := r.Header.Get("Authorization")
 	if token == "" {
 		utils.SendJSONResponse(w, http.StatusUnauthorized, models.Response{Message: "Token not provided"})
 		return
 	}
+
+	// Убираем префикс "Bearer " из токена
+	token = strings.TrimPrefix(token, "Bearer ")
 
 	// Парсим JWT токен
 	claims := jwt.MapClaims{}
@@ -124,7 +130,7 @@ func SuccessHandler(w http.ResponseWriter, r *http.Request) {
 	})
 
 	if err != nil || !parsedToken.Valid {
-		log.Printf("Invalid token: %v", err) // Логирование ошибки токена
+		log.Printf("Invalid token: %v", err)
 		utils.SendJSONResponse(w, http.StatusUnauthorized, models.Response{Message: "Invalid token"})
 		return
 	}
@@ -132,7 +138,7 @@ func SuccessHandler(w http.ResponseWriter, r *http.Request) {
 	// Извлекаем login из токена
 	login, ok := claims["login"].(string)
 	if !ok {
-		log.Println("Invalid token structure: 'login' not found or not a string") // Логирование ошибки структуры токена
+		log.Println("Invalid token structure: 'login' not found or not a string")
 		utils.SendJSONResponse(w, http.StatusUnauthorized, models.Response{Message: "Invalid token structure"})
 		return
 	}
@@ -142,23 +148,23 @@ func SuccessHandler(w http.ResponseWriter, r *http.Request) {
 	storedToken, err := rdb.Get(ctx, fmt.Sprintf("token:%s", login)).Result()
 
 	if err == redis.Nil {
-		log.Printf("Token not found in Redis for login: %s", login) // Логирование случая, когда токен не найден в Redis
+		log.Printf("Token not found in Redis for login: %s", login)
 		utils.SendJSONResponse(w, http.StatusUnauthorized, models.Response{Message: "Invalid token"})
 		return
 	}
 
 	if err != nil {
-		log.Printf("Error retrieving token from Redis: %v", err) // Логирование ошибки при доступе к Redis
+		log.Printf("Error retrieving token from Redis: %v", err)
 		utils.SendJSONResponse(w, http.StatusInternalServerError, models.Response{Message: "Internal server error"})
 		return
 	}
 
 	// Если токен совпадает
 	if storedToken == token {
-		log.Printf("Token validated successfully for user: %s", login) // Логирование успешной валидации токена
+		log.Printf("Token validated successfully for user: %s", login)
 		utils.SendJSONResponse(w, http.StatusOK, models.Response{Message: "Successfully logged in"})
 	} else {
-		log.Printf("Token mismatch for user: %s", login) // Логирование несоответствия токенов
+		log.Printf("Token mismatch for user: %s", login)
 		utils.SendJSONResponse(w, http.StatusUnauthorized, models.Response{Message: "Invalid token"})
 	}
 }

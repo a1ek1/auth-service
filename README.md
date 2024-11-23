@@ -32,6 +32,11 @@
 4. Для остановки вам нужно ввести 
 
    ```bash
+   docker-compose down
+   ```
+   или 
+
+   ```bash
    docker stop $(docker ps -q)
    docker rm $(docker ps -aq)
    ```
@@ -51,7 +56,7 @@ curl -X POST http://localhost:8080/login -H "Content-Type: application/json" -d 
 ```
 
 ### Проверка доступа к данным
-Выполните следующий запрос:
+Для доступа к защищённым данным, используйте следующий запрос, заменив {token} на ваш токен, полученный при авторизации:
 ```bash
 curl -X GET http://localhost:8080/success -H "Authorization: Bearer {token}
 ```

@@ -135,7 +135,6 @@ func SuccessHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Извлекаем login из токена
 	login, ok := claims["login"].(string)
 	if !ok {
 		log.Println("Invalid token structure: 'login' not found or not a string")

@@ -6,7 +6,7 @@ COPY go.mod go.sum ./
 
 RUN go mod tidy
 
-COPY ../ ./
+COPY . ./
 
 RUN go build -o auth-service ./cmd/auth-service
 

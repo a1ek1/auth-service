@@ -5,6 +5,7 @@ import (
 	"auth-service/internal/utils"
 	"encoding/json"
 	"fmt"
+	"github.com/jackc/pgx/v4"
 	"log"
 	"net/http"
 	"strings"
@@ -34,16 +35,28 @@ func RegisterHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Проверяем, существует ли пользователь в Redis
+	// Проверка на пустой логин и пароль
+	if strings.TrimSpace(user.Login) == "" || strings.TrimSpace(user.Password) == "" {
+		log.Println("Empty login or password provided")
+		utils.SendJSONResponse(w, http.StatusBadRequest, models.Response{Message: "Login and password cannot be empty"})
+		return
+	}
+
+	log.Printf("Decoded user: %+v\n", user) // Лог для отладки
+
+	// Проверяем, существует ли пользователь с таким логином в PostgreSQL
 	ctx := context.Background()
-	_, err = rdb.Get(ctx, user.Login).Result()
-	if err == nil {
+	var exists bool
+	err = utils.DB.QueryRow(ctx, "SELECT EXISTS (SELECT 1 FROM users WHERE login=$1)", user.Login).Scan(&exists)
+	if err != nil {
+		log.Println("Error querying PostgreSQL:", err)
+		utils.SendJSONResponse(w, http.StatusInternalServerError, models.Response{Message: "Internal server error"})
+		return
+	}
+
+	if exists {
 		log.Println("User already exists:", user.Login)
 		utils.SendJSONResponse(w, http.StatusConflict, models.Response{Message: "User already exists"})
-		return
-	} else if err != redis.Nil {
-		log.Println("Error checking user in Redis:", err)
-		utils.SendJSONResponse(w, http.StatusInternalServerError, models.Response{Message: "Internal server error"})
 		return
 	}
 
@@ -55,10 +68,10 @@ func RegisterHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Сохраняем в Redis
-	err = rdb.Set(ctx, user.Login, hashedPassword, 0).Err()
+	// Сохраняем пользователя в PostgreSQL
+	_, err = utils.DB.Exec(ctx, "INSERT INTO users (login, password) VALUES ($1, $2)", user.Login, hashedPassword)
 	if err != nil {
-		log.Println("Error saving to Redis:", err)
+		log.Println("Error inserting user into PostgreSQL:", err)
 		utils.SendJSONResponse(w, http.StatusInternalServerError, models.Response{Message: "Internal server error"})
 		return
 	}
@@ -75,8 +88,9 @@ func LoginHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	ctx := context.Background()
-	storedPassword, err := rdb.Get(ctx, loginReq.Login).Result()
-	if err == redis.Nil {
+	var storedPassword string
+	err = utils.DB.QueryRow(ctx, "SELECT password FROM users WHERE login=$1", loginReq.Login).Scan(&storedPassword)
+	if err == pgx.ErrNoRows {
 		utils.SendJSONResponse(w, http.StatusUnauthorized, models.Response{Message: "User not found"})
 		return
 	}
@@ -92,7 +106,7 @@ func LoginHandler(w http.ResponseWriter, r *http.Request) {
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
 		"login": loginReq.Login,
-		"exp":   time.Now().Add(time.Hour * 1).Unix(), // срок действия 1 час
+		"exp":   time.Now().Add(time.Hour * 1).Unix(),
 	})
 
 	tokenString, err := token.SignedString(jwtSecret)
@@ -108,7 +122,6 @@ func LoginHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Authorization", "Bearer "+tokenString)
-	w.WriteHeader(http.StatusOK)
 	utils.SendJSONResponse(w, http.StatusOK, models.Response{Message: "Login successful"})
 }
 

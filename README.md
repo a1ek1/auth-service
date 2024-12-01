@@ -46,13 +46,13 @@
 Для регистрации нового пользователя выполните следующий запрос:
 
 ```bash
-curl -X POST http://localhost:8080/register -H "Content-Type: application/json" -d "{\"username\": \"user1\", \"password\": \"password123\"}"
+curl -X POST http://localhost:8080/register -H "Content-Type: application/json" -d "{\"login\": \"oleg\", \"password\": \"password123\"}"
 ```
 
 ### Авторизация пользователя
 Для авторизации пользователя выполните следующий запрос:
 ```bash
-curl -X POST http://localhost:8080/login -H "Content-Type: application/json" -d "{\"username\": \"user1\", \"password\": \"password123\"}" -i
+curl -X POST http://localhost:8080/login -H "Content-Type: application/json" -d "{\"login\": \"oleg\", \"password\": \"password123\"}" -i
 ```
 
 ### Проверка доступа к данным

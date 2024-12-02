@@ -6,9 +6,17 @@ import (
 	"context"
 	"log"
 	"net/http"
+
+	"github.com/joho/godotenv"
 )
 
 func main() {
+	// Загружаем переменные из .env
+	err := godotenv.Load()
+	if err != nil {
+		log.Println("No .env file found, loading environment variables from system")
+	}
+
 	utils.ConnectToDB()
 	defer utils.DB.Close(context.Background())
 

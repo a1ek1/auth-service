@@ -8,6 +8,7 @@ import (
 	"github.com/jackc/pgx/v4"
 	"log"
 	"net/http"
+	"os"
 	"strings"
 	"time"
 
@@ -17,12 +18,12 @@ import (
 )
 
 var rdb *redis.Client
-var jwtSecret = []byte("secret_key_for_jwt")
+var jwtSecret = []byte(os.Getenv("JWT_SECRET")) // Секрет берется из переменных окружения
 
 func init() {
 	rdb = redis.NewClient(&redis.Options{
-		Addr: "redis:6379", // Адрес Redis
-		DB:   0,            // Используем 0-ю базу данных
+		Addr: os.Getenv("REDIS_URL"), // Адрес берется из переменных окружения
+		DB:   0,
 	})
 }
 

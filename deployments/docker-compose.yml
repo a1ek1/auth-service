@@ -8,9 +8,8 @@ services:
       dockerfile: deployments/Dockerfile   # Указываем путь к Dockerfile в директории deployments
     ports:
       - "8080:8080"                       # Проброс порта 8080 для общения с сервисом
-    environment:
-      - REDIS_URL=redis://redis:6379      # Адрес Redis, который будет использоваться в контейнере
-      - JWT_SECRET=secret_key_for_jwt     # Секрет для JWT (по желанию можно вынести в .env)
+    env_file:
+      - ../.env
     depends_on:
       - redis                             # Зависимость от контейнера Redis
     networks:

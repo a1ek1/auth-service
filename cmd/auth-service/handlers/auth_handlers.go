@@ -18,11 +18,11 @@ import (
 )
 
 var rdb *redis.Client
-var jwtSecret = []byte(os.Getenv("JWT_SECRET")) // Секрет берется из переменных окружения
+var jwtSecret = []byte(os.Getenv("JWT_SECRET"))
 
 func init() {
 	rdb = redis.NewClient(&redis.Options{
-		Addr: os.Getenv("REDIS_URL"), // Адрес берется из переменных окружения
+		Addr: os.Getenv("REDIS_URL"),
 		DB:   0,
 	})
 }
@@ -43,7 +43,7 @@ func RegisterHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	log.Printf("Decoded user: %+v\n", user) // Лог для отладки
+	log.Printf("Decoded user: %+v\n", user)
 
 	// Проверяем, существует ли пользователь с таким логином в PostgreSQL
 	ctx := context.Background()
@@ -61,7 +61,6 @@ func RegisterHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Хешируем пароль
 	hashedPassword, err := utils.HashPassword(user.Password)
 	if err != nil {
 		log.Println("Error hashing password:", err)
@@ -134,7 +133,6 @@ func SuccessHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Убираем префикс "Bearer " из токена
 	token = strings.TrimPrefix(token, "Bearer ")
 
 	// Парсим JWT токен

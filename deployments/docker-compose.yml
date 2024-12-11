@@ -4,28 +4,29 @@ services:
   # Сервис авторизации
   auth-service:
     build:
-      context: ..                         # Указываем контекст сборки на родительскую директорию (папка auth-service)
-      dockerfile: deployments/Dockerfile   # Указываем путь к Dockerfile в директории deployments
+      context: ..
+      dockerfile: deployments/Dockerfile
     ports:
-      - "8080:8080"                       # Проброс порта 8080 для общения с сервисом
+      - "8080:8080"
     env_file:
       - ../.env
     depends_on:
-      - redis                             # Зависимость от контейнера Redis
+      - redis
     networks:
       - auth-network
-    restart: always                       # Автоматический перезапуск контейнера в случае сбоев
+    restart: always
 
   # Сервис Redis
   redis:
-    image: redis:alpine                  # Используем официальный образ Redis
+    image: redis:alpine
     container_name: redis
     ports:
-      - "6379:6379"                      # Проброс порта Redis
+      - "6379:6379"
     networks:
       - auth-network
-    restart: always                      # Автоматический перезапуск контейнера в случае сбоев
+    restart: always
 
+  # Сервис Postgres
   postgres:
     image: postgres:15-alpine
     container_name: postgres
@@ -38,7 +39,6 @@ services:
     networks:
       - auth-network
     restart: always
-
 
 
 # Сетевые настройки

@@ -20,6 +20,8 @@ func main() {
 	utils.ConnectToDB()
 	defer utils.DB.Close(context.Background())
 
+	utils.RunMigrations()
+
 	routes.SetupRoutes()
 	log.Println("Server started on :8080")
 	log.Fatal(http.ListenAndServe(":8080", nil))

@@ -7,6 +7,9 @@ import (
 	"net/http"
 	"os"
 
+	"github.com/golang-migrate/migrate/v4"
+	_ "github.com/golang-migrate/migrate/v4/database/postgres"
+	_ "github.com/golang-migrate/migrate/v4/source/file"
 	"github.com/jackc/pgx/v4"
 	"golang.org/x/crypto/bcrypt"
 )
@@ -21,6 +24,22 @@ func ConnectToDB() {
 		log.Fatalf("Unable to connect to database: %v\n", err)
 	}
 	log.Println("Connected to PostgreSQL")
+}
+
+func RunMigrations() {
+	m, err := migrate.New(
+		"file://migrations",
+		os.Getenv("DB_CONN_STRING"),
+	)
+	if err != nil {
+		log.Fatalf("Error creating migrate instance: %v", err)
+	}
+
+	err = m.Up()
+	if err != nil && err != migrate.ErrNoChange {
+		log.Fatalf("Error running migrations: %v", err)
+	}
+	log.Println("Migrations applied successfully")
 }
 
 func HashPassword(password string) (string, error) {

@@ -19,17 +19,18 @@
    git clone https://github.com/a1ek1/auth-service.git
    cd auth-service
 ```
+2. Переименовать файл .env-example на .env и заполнить необходимые константы
 
-2. Соберите и запустите проект с помощью Docker Compose
+3. Соберите и запустите проект с помощью Docker Compose
 
 ```bash
    cd deployments
    docker-compose up --build
 ```
 
-3. После успешного запуска, сервис будет доступен на порту 8080 на вашем локальном компьютере.
+4. После успешного запуска, сервис будет доступен на порту 8080 на вашем локальном компьютере.
 
-4. Для остановки вам нужно ввести 
+5. Для остановки вам нужно ввести 
 
 ```bash
    docker-compose down
@@ -89,23 +90,25 @@
    cd auth-service
 ```
 
-2. Запустите Minikube:
+2. Переименовать файл .env-example на .env и заполнить необходимые константы
+
+3. Запустите Minikube:
 ```bash
     minikube start --driver=docker 
 ```
-3. Настройте использование Minikube Docker-демона:
+4. Настройте использование Minikube Docker-демона:
 ```bash
     eval $(minikube docker-env) 
 ```
-4. Примените все манифесты Kubernetes:
+5. Примените все манифесты Kubernetes:
 ```bash
     kubectl apply -f deployments/k8s/
 ```
-5. Убедитесь, что поды запущены:
+6. Убедитесь, что поды запущены:
 ```bash
     kubectl get pods
 ```
-6. Получите URL для доступа к сервису:
+7. Получите URL для доступа к сервису:
 ```bash
     minikube service auth-service --url
 ```

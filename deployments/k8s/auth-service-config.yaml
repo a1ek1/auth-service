@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: auth-service-config
+data:
+  REDIS_URL: redis:6379
+  DB_CONN_STRING: postgres://auth_user:auth_password@postgres:5432/auth_db?sslmode=disable

@@ -11,6 +11,8 @@ tmp
 .idea/
 .vscode/
 
+.env-example
+
 /cmd/auth-service/*.test
 /cmd/auth-service/*.out
 /internal/test/
